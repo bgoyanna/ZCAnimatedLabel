@@ -109,7 +109,7 @@
     CTFrameRef ctFrame;
     CGRect frameRect;
     CFRange rangeAll = CFRangeMake(0, text.length);
-
+    
     
     // Measure how mush specec will be needed for this attributed string
     // So we can find minimun frame needed
@@ -138,16 +138,17 @@
     
     //layout done add into textAttributes
     NSMutableArray *textAttributes = [NSMutableArray arrayWithCapacity:3];
-
+    
     CGFloat startOffsetY = 0;
-
+    CGFloat offsetX = (size.width - s.width) / 2;
+    
     // Loop throught the lines
     for(CFIndex i = 0; i < lineCount; ++i) {
         
         CTLineRef line = (__bridge CTLineRef)[lines objectAtIndex:i];
         
         CFRange lineRange = CTLineGetStringRange(line);
-
+        
         CGPoint lineOrigin = lineOrigins[i];
         CGFloat ascent, descent, leading;
         CGFloat lineWidth = CTLineGetTypographicBounds(line, &ascent, &descent, &leading);
@@ -161,7 +162,7 @@
         lineFrames[i].size = CGSizeMake(lineWidth, lineHeight);
         
         NSString *lineString = [text substringWithRange:NSMakeRange(lineRange.location, lineRange.length)];
-
+        
         NSStringEnumerationOptions options = 0;
         switch (self.groupType) {
             case ZCLayoutGroupChar:
@@ -186,7 +187,7 @@
             maxDescender = MAX(maxDescender, font.descender > 0 ? font.descender : -font.descender);
             maxCharHeight = MAX(maxCharHeight, font.xHeight + font.ascender + font.descender);
         }];
-         
+        
         [lineString enumerateSubstringsInRange:NSMakeRange(0, lineRange.length) options:options usingBlock:^(NSString *substring, NSRange substringRange, NSRange enclosingRange, BOOL *stop) {
             ZCTextBlock *textBlock = [[ZCTextBlock alloc] init];
             textBlock.text = [lineString substringWithRange:enclosingRange];
@@ -196,13 +197,13 @@
             UIFont *font = [subLineString attribute:NSFontAttributeName atIndex:0 effectiveRange:NULL];
             [textBlock updateBaseAttributedString:subLineString];
             
-            CGFloat startOffset = CTLineGetOffsetForStringIndex(line, enclosingRange.location + lineRange.location, NULL);
-            CGFloat endOffset = CTLineGetOffsetForStringIndex(line, enclosingRange.location + enclosingRange.length + lineRange.location, NULL);
+            CGFloat startOffset = CTLineGetOffsetForStringIndex(line, enclosingRange.location + lineRange.location, NULL) + offsetX;
+            CGFloat endOffset = CTLineGetOffsetForStringIndex(line, enclosingRange.location + enclosingRange.length + lineRange.location, NULL) + offsetX;
             
             CGFloat realHeight = font.xHeight + font.ascender + font.descender;
             CGFloat absAscender = font.descender > 0 ? font.descender : -font.descender;
             CGFloat originDiff = (maxCharHeight - realHeight) - (maxDescender - absAscender);
-
+            
             if (self.groupType == ZCLayoutGroupLine) {
                 realHeight = lineHeight;
                 originDiff = 0;
@@ -210,7 +211,7 @@
             textBlock.charRect = CGRectMake(startOffset + lineOrigins[i].x, startOffsetY + originDiff, endOffset - startOffset, realHeight);
             [textAttributes addObject:textBlock];
             
-            if (self.layerBased) {                
+            if (self.layerBased) {
                 ZCTextBlockLayer *textBlockLayer = [[ZCTextBlockLayer alloc] init];
                 textBlockLayer.frame = textBlock.charRect;
                 textBlockLayer.attributedString = subLineString;
